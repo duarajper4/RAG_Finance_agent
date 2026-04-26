@@ -74,15 +74,16 @@ Context:
 Question:
 {query}"""
     
+    # ✅ Use currently available Groq model (April 2026)
     response = client.chat.completions.create(
-        model="llama-3.2-1b-preview",  # Use a valid Groq model like llama3.1-8b-instant
+        model="llama-3.1-8b-instant",  # Fast & reliable
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7,
         max_tokens=500
     )
     
     return response.choices[0].message.content
-
+    
 def chat(user_input, history):
     answer = generate_answer(user_input)
     history.append((user_input, answer))
