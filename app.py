@@ -12,6 +12,57 @@ embed_model = SentenceTransformer("all-MiniLM-L6-v2")
 index = None
 chunks = []
 
+# Add after globals:
+chat_history = []  # Session memory
+
+def chat(user_input, history):
+    global chat_history
+    
+    # Build full context (PDF + conversation history)
+    full_context = "\n".join([f"User: {h['content']}\nBot: {h.get('bot_response', '')}" 
+                             for h in chat_history[-5:]]) if chat_history else ""
+    
+    answer = generate_answer(user_input, full_context)
+    
+    # Store in memory
+    chat_history.append({"user": user_input, "bot": answer})
+    
+    # Update UI history
+    new_history = history + [
+        {"role": "user", "content": user_input},
+        {"role": "assistant", "content": answer}
+    ]
+    
+    return new_history, new_history
+
+def generate_answer(query, conversation_context=""):
+    if index is None:
+        return "⚠️ Please load a PDF first."
+    
+    rag_context = retrieve(query)
+    rag_text = "\n\n".join(rag_context)
+    
+    # ✅ Combine RAG + Conversation Memory
+    full_prompt = f"""You are a smart financial AI assistant that remembers conversations.
+
+Previous conversation:
+{conversation_context}
+
+PDF Context (use ONLY this for facts):
+{rag_text}
+
+Question: {query}
+
+Respond naturally and helpfully, referencing past discussion when relevant."""
+    
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": full_prompt}],
+        temperature=0.7,
+        max_tokens=600
+    )
+    return response.choices[0].message.content
+
 # Groq client with HF Secrets
 client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
