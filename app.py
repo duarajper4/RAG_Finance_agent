@@ -3,26 +3,21 @@ import faiss
 import numpy as np
 import requests
 import gradio as gr
-
 from openai import OpenAI
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 
-# =========================
-# INIT
-# =========================
+# Globals (shared state in Gradio)
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
 index = None
 chunks = []
 
+# Groq client with HF Secrets
 client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1",
 )
 
-# =========================
-# DRIVE LINK HANDLER
-# =========================
 def convert_drive_link(link):
     try:
         file_id = link.split("/d/")[1].split("/")[0]
@@ -30,162 +25,84 @@ def convert_drive_link(link):
     except:
         return link
 
-# =========================
-# LOAD PDF
-# =========================
 def load_pdf_from_link(link):
     global index, chunks
-
     url = convert_drive_link(link)
-    pdf_path = "temp.pdf"
-
-    r = requests.get(url)
-    with open(pdf_path, "wb") as f:
-        f.write(r.content)
-
-    reader = PdfReader(pdf_path)
-
-    texts = []
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            texts.append(text)
-
+    PDF_PATH = "temp.pdf"
+    response = requests.get(url)
+    with open(PDF_PATH, "wb") as f:
+        f.write(response.content)
+    
+    reader = PdfReader(PDF_PATH)
+    texts = [page.extract_text() for page in reader.pages if page.extract_text()]
+    
+    # Chunking
     chunks = []
     for t in texts:
         words = t.split()
         for i in range(0, len(words), 500):
             chunks.append(" ".join(words[i:i+500]))
-
+    
+    # Embeddings + FAISS
     embeddings = embed_model.encode(chunks)
     dim = embeddings.shape[1]
-
     index = faiss.IndexFlatL2(dim)
-    index.add(np.array(embeddings))
+    index.add(np.array(embeddings).astype('float32'))
+    
+    return f"✅ PDF loaded! {len(chunks)} chunks created."
 
-    return f"✅ PDF Loaded Successfully | Chunks: {len(chunks)}"
-
-# =========================
-# RETRIEVAL
-# =========================
 def retrieve(query, k=3):
+    if index is None:
+        return []
     q_emb = embed_model.encode([query])
-    _, indices = index.search(np.array(q_emb), k)
+    distances, indices = index.search(np.array(q_emb).astype('float32'), k)
     return [chunks[i] for i in indices[0]]
 
-# =========================
-# GENERATION
-# =========================
 def generate_answer(query):
     if index is None:
         return "⚠️ Please load a PDF first."
-
-    context = "\n\n".join(retrieve(query))
-
-    prompt = f"""
-You are a professional AI assistant.
-Answer ONLY using the given context.
+    
+    context = retrieve(query)
+    context_text = "\n\n".join(context)
+    
+    prompt = f"""You are a financial AI assistant.
+Answer ONLY using the context below.
 
 Context:
-{context}
+{context_text}
 
 Question:
-{query}
-"""
-
-    res = client.responses.create(
-        model="openai/gpt-oss-20b",
-        input=prompt
+{query}"""
+    
+    response = client.chat.completions.create(
+        model="llama-3.2-1b-preview",  # Use a valid Groq model like llama3.1-8b-instant
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=500
     )
+    
+    return response.choices[0].message.content
 
-    return res.output_text
-
-# =========================
-# CHAT FUNCTION
-# =========================
-def chat(msg, history):
-    answer = generate_answer(msg)
-    history.append((msg, answer))
+def chat(user_input, history):
+    answer = generate_answer(user_input)
+    history.append((user_input, answer))
     return history, history
 
-# =========================
-# CSS (BOTPRESS + TELEKOM STYLE)
-# =========================
-css = """
-body {
-    background-color: #0b0b10;
-    color: white;
-    font-family: Inter, sans-serif;
-}
-
-.gradio-container {
-    max-width: 1100px !important;
-}
-
-h1 {
-    text-align: center;
-    color: #e20074;
-    font-weight: 700;
-}
-
-.chatbot {
-    background: #11131a !important;
-    border-radius: 15px;
-    border: 1px solid #2a2d3a;
-}
-
-button {
-    background: linear-gradient(90deg, #e20074, #ff4da6) !important;
-    border-radius: 10px !important;
-    color: white !important;
-    font-weight: bold;
-    transition: 0.3s;
-}
-
-button:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 15px #e20074;
-}
-
-input {
-    background: #1a1d26 !important;
-    border: 1px solid #2a2d3a !important;
-    color: white !important;
-    border-radius: 10px !important;
-}
-"""
-
-# =========================
-# UI
-# =========================
 with gr.Blocks() as app:
-
-    # LOGO (FIXED — NO gr.Image)
-    gr.HTML("""
-    <div style="display:flex;justify-content:center;margin-bottom:10px;">
-        <img src="https://www.telekom.com/resource/image/1037468/landscape_ratio16x9/1920/1080/0a6b8d7f3d9f6f0c5f4c8b9c2c1b2d3e/telekom-logo.jpg"
-        width="180"/>
-    </div>
-    """)
-
-    gr.Markdown("# 📊 Telekom AI RAG Chatbot")
-
+    gr.Markdown("# 📊 Dynamic Finance RAG Chatbot")
+    
     with gr.Row():
-        pdf_link = gr.Textbox(label="📎 Google Drive PDF Link")
-        load_btn = gr.Button("Load Document")
-
-    status = gr.Textbox(label="Status")
-
+        link_input = gr.Textbox(label="📎 Paste Google Drive PDF Link")
+        load_btn = gr.Button("Load PDF")
+    
+    status = gr.Textbox(label="Status", interactive=False)
+    
     chatbot = gr.Chatbot()
-    state = gr.State([])
+    msg = gr.Textbox(label="Ask your question")
+    
+    # Events
+    load_btn.click(load_pdf_from_link, inputs=link_input, outputs=status)
+    msg.submit(chat, inputs=[msg, chatbot], outputs=[chatbot, chatbot])
 
-    msg = gr.Textbox(label="Ask Anything")
-
-    # Actions
-    load_btn.click(load_pdf_from_link, inputs=pdf_link, outputs=status)
-    msg.submit(chat, inputs=[msg, state], outputs=[chatbot, state])
-
-# =========================
-# LAUNCH (Gradio 6 FIX)
-# =========================
-app.launch(css=css, theme=gr.themes.Soft())
+if __name__ == "__main__":
+    app.launch()
