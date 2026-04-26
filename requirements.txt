@@ -1,0 +1,7 @@
+gradio
+openai
+faiss-cpu
+sentence-transformers
+pypdf
+numpy
+requests
