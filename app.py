@@ -136,27 +136,6 @@ Question:
     return response.choices[0].message.content
     
 # ... (keep all previous code until chat function)
-# Add to app.py
-MODELS = {
-    "Fast (Groq)": "llama-3.1-8b-instant",
-    "Smart (Groq)": "llama-3.1-70b-versatile", 
-    "Your Bot": "yourusername/finance-bot"  # After fine-tuning
-}
-
-model_dropdown = gr.Dropdown(choices=list(MODELS.keys()), value="Fast (Groq)", label="🤖 AI Model")
-
-def generate_answer(query, conversation_context="", model_name="Fast (Groq)"):
-    # ... RAG logic ...
-    model_id = MODELS[model_name]
-    
-    if "Your Bot" in model_name:
-        # Use HF Inference API for your model
-        response = requests.post("https://api-inference.huggingface.co/models/yourusername/finance-bot", 
-                                json={"inputs": full_prompt})
-        return response.json()[0]["generated_text"]
-    else:
-        # Groq API
-        response = client.chat.completions.create(model=model_id, ...)
 
 def chat(user_input, history):
     answer = generate_answer(user_input)
