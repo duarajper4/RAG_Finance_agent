@@ -1,0 +1,53 @@
+body {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+}
+
+/* Container */
+.gradio-container {
+    max-width: 1000px !important;
+    margin: auto;
+}
+
+/* Chat bubbles */
+.message.user {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-radius: 14px;
+    padding: 10px;
+    transition: 0.3s;
+}
+
+.message.user:hover {
+    transform: scale(1.03);
+}
+
+/* Bot */
+.message.bot {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    color: white;
+    border-radius: 14px;
+    padding: 10px;
+    transition: 0.3s;
+}
+
+.message.bot:hover {
+    transform: scale(1.03);
+}
+
+/* Buttons */
+button {
+    border-radius: 10px !important;
+    transition: 0.3s ease-in-out;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* Input box */
+textarea {
+    border-radius: 12px !important;
+    padding: 10px;
+}
