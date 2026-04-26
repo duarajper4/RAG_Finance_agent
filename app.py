@@ -6,6 +6,130 @@ import gradio as gr
 from openai import OpenAI
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
+css = """
+
+/* =========================
+   TELECOM ENTERPRISE THEME
+   Magenta AI Chatbot UI
+   ========================= */
+
+/* Background */
+
+body {
+    background: linear-gradient(135deg, #0B0B10, #141420);
+    font-family: "Segoe UI", Roboto, Arial;
+    color: white;
+}
+
+/* Main container */
+.gradio-container {
+    max-width: 1100px !important;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Header / Title */
+h1, h2, h3 {
+    color: #E20074;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Chat container */
+.chatbot, .gradio-chatbot {
+    background: rgba(28, 28, 37, 0.6);
+    border: 1px solid rgba(226, 0, 116, 0.2);
+    border-radius: 18px;
+    backdrop-filter: blur(14px);
+    padding: 10px;
+}
+
+/* USER MESSAGE */
+.message.user {
+    background: linear-gradient(135deg, #E20074, #b0005a);
+    color: white;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 6px 20px rgba(226, 0, 116, 0.3);
+    transition: 0.25s ease;
+}
+
+.message.user:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(226, 0, 116, 0.5);
+}
+
+/* BOT MESSAGE */
+.message.bot {
+    background: rgba(255, 255, 255, 0.06);
+    color: white;
+    border-radius: 16px;
+    padding: 12px;
+    border-left: 3px solid #E20074;
+    transition: 0.25s ease;
+}
+
+.message.bot:hover {
+    transform: translateY(-2px);
+}
+
+/* INPUT BOX */
+textarea {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(226, 0, 116, 0.3) !important;
+    border-radius: 12px !important;
+    color: white !important;
+    padding: 12px !important;
+}
+
+/* BUTTONS */
+button {
+    background: #E20074 !important;
+    color: white !important;
+    border-radius: 10px !important;
+    border: none !important;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: #ff2d9a !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(226, 0, 116, 0.4);
+}
+
+/* INPUT FOCUS EFFECT */
+textarea:focus {
+    outline: none !important;
+    border: 1px solid #E20074 !important;
+    box-shadow: 0 0 15px rgba(226, 0, 116, 0.4);
+}
+
+/* Card style panels (future UI elements) */
+.card {
+    background: rgba(28, 28, 37, 0.7);
+    border: 1px solid rgba(226, 0, 116, 0.2);
+    border-radius: 16px;
+    padding: 15px;
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #E20074;
+    border-radius: 10px;
+}
+"""
+
 
 # Globals (shared state in Gradio)
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -146,7 +270,7 @@ def chat(user_input, history):
     return new_history, new_history
 
 # UI (replace entirely):
-with gr.Blocks(title="Finance RAG") as app:
+with gr.Blocks(title="Finance RAG", css=css) as app:
     gr.Markdown("# 📊 Dynamic Finance RAG Chatbot")
     
     with gr.Row():
