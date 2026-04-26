@@ -21,11 +21,6 @@ client = OpenAI(
 )
 
 # =========================
-# TELEKOM THEME LOGO
-# =========================
-LOGO_URL = "https://www.telekom.com/resource/image/1037468/landscape_ratio16x9/1920/1080/0a6b8d7f3d9f6f0c5f4c8b9c2c1b2d3e/telekom-logo.jpg"
-
-# =========================
 # DRIVE LINK HANDLER
 # =========================
 def convert_drive_link(link):
@@ -68,7 +63,7 @@ def load_pdf_from_link(link):
     index = faiss.IndexFlatL2(dim)
     index.add(np.array(embeddings))
 
-    return f"✅ PDF Loaded | Chunks: {len(chunks)}"
+    return f"✅ PDF Loaded Successfully | Chunks: {len(chunks)}"
 
 # =========================
 # RETRIEVAL
@@ -83,13 +78,13 @@ def retrieve(query, k=3):
 # =========================
 def generate_answer(query):
     if index is None:
-        return "⚠️ Load a PDF first"
+        return "⚠️ Please load a PDF first."
 
     context = "\n\n".join(retrieve(query))
 
     prompt = f"""
 You are a professional AI assistant.
-Answer ONLY from context.
+Answer ONLY using the given context.
 
 Context:
 {context}
@@ -106,11 +101,11 @@ Question:
     return res.output_text
 
 # =========================
-# CHAT
+# CHAT FUNCTION
 # =========================
 def chat(msg, history):
-    ans = generate_answer(msg)
-    history.append((msg, ans))
+    answer = generate_answer(msg)
+    history.append((msg, answer))
     return history, history
 
 # =========================
@@ -120,7 +115,7 @@ css = """
 body {
     background-color: #0b0b10;
     color: white;
-    font-family: 'Inter', sans-serif;
+    font-family: Inter, sans-serif;
 }
 
 .gradio-container {
@@ -129,7 +124,7 @@ body {
 
 h1 {
     text-align: center;
-    color: #e20074; /* Telekom pink */
+    color: #e20074;
     font-weight: 700;
 }
 
@@ -158,35 +153,39 @@ input {
     color: white !important;
     border-radius: 10px !important;
 }
-
-.card {
-    background: #11131a;
-    padding: 15px;
-    border-radius: 15px;
-    border: 1px solid #2a2d3a;
-}
 """
 
 # =========================
 # UI
 # =========================
-with gr.Blocks(css=css, theme=gr.themes.Soft()) as app:
+with gr.Blocks() as app:
 
-    gr.Image(LOGO_URL, height=80)
+    # LOGO (FIXED — NO gr.Image)
+    gr.HTML("""
+    <div style="display:flex;justify-content:center;margin-bottom:10px;">
+        <img src="https://www.telekom.com/resource/image/1037468/landscape_ratio16x9/1920/1080/0a6b8d7f3d9f6f0c5f4c8b9c2c1b2d3e/telekom-logo.jpg"
+        width="180"/>
+    </div>
+    """)
+
     gr.Markdown("# 📊 Telekom AI RAG Chatbot")
 
     with gr.Row():
-        pdf_link = gr.Textbox(label="📎 PDF Link (Google Drive supported)")
+        pdf_link = gr.Textbox(label="📎 Google Drive PDF Link")
         load_btn = gr.Button("Load Document")
 
-    status = gr.Textbox()
+    status = gr.Textbox(label="Status")
 
     chatbot = gr.Chatbot()
     state = gr.State([])
 
     msg = gr.Textbox(label="Ask Anything")
 
+    # Actions
     load_btn.click(load_pdf_from_link, inputs=pdf_link, outputs=status)
     msg.submit(chat, inputs=[msg, state], outputs=[chatbot, state])
 
-app.launch()
+# =========================
+# LAUNCH (Gradio 6 FIX)
+# =========================
+app.launch(css=css, theme=gr.themes.Soft())
