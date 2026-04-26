@@ -84,26 +84,37 @@ Question:
     
     return response.choices[0].message.content
     
+# ... (keep all previous code until chat function)
+
 def chat(user_input, history):
     answer = generate_answer(user_input)
-    history.append((user_input, answer))
-    return history, history
+    new_history = history + [
+        {"role": "user", "content": user_input},
+        {"role": "assistant", "content": answer}
+    ]
+    return new_history, new_history
 
-with gr.Blocks() as app:
+# UI (replace entirely):
+with gr.Blocks(title="Finance RAG") as app:
     gr.Markdown("# 📊 Dynamic Finance RAG Chatbot")
     
     with gr.Row():
-        link_input = gr.Textbox(label="📎 Paste Google Drive PDF Link")
-        load_btn = gr.Button("Load PDF")
+        link_input = gr.Textbox(label="📎 Google Drive PDF Link", placeholder="https://drive.google.com/file/d/...")
+        load_btn = gr.Button("📥 Load PDF", variant="primary")
     
     status = gr.Textbox(label="Status", interactive=False)
     
-    chatbot = gr.Chatbot()
-    msg = gr.Textbox(label="Ask your question")
+    chatbot = gr.Chatbot(height=500)
+    msg = gr.Textbox(
+        label="💬 Ask about the PDF", 
+        placeholder="What are the key financial metrics?",
+        container=True
+    )
     
     # Events
     load_btn.click(load_pdf_from_link, inputs=link_input, outputs=status)
     msg.submit(chat, inputs=[msg, chatbot], outputs=[chatbot, chatbot])
+    msg.submit(lambda: "", outputs=msg)
 
 if __name__ == "__main__":
     app.launch()
