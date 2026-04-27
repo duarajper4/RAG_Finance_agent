@@ -6,128 +6,217 @@ import gradio as gr
 from openai import OpenAI
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
+
 css = """
-
-/* =========================
-   TELECOM ENTERPRISE THEME
-   Magenta AI Chatbot UI
-   ========================= */
-
-/* Background */
-
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+ 
+*, *::before, *::after { box-sizing: border-box; }
+ 
+:root {
+  --M:        #E20074;
+  --MD:       #B5005C;
+  --MBG:      rgba(226,0,116,0.07);
+  --bg:       #F6F3F8;
+  --white:    #FFFFFF;
+  --surf2:    #F2EEF5;
+  --border:   #E6DEED;
+  --border2:  #D0C4DC;
+  --text:     #1A1525;
+  --sub:      #5A5272;
+  --muted:    #9990AA;
+  --ok:       #00A878;
+  --okbg:     #E8F8F3;
+  --okborder: #AADFC8;
+  --f:        'Plus Jakarta Sans', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --sh-sm:    0 1px 4px rgba(0,0,0,0.06);
+  --sh-md:    0 3px 14px rgba(0,0,0,0.08);
+  --sh-mg:    0 4px 20px rgba(226,0,116,0.18);
+}
+ 
+/* ── BASE ── */
 body {
-    background: linear-gradient(135deg, #0B0B10, #141420);
-    font-family: "Segoe UI", Roboto, Arial;
-    color: white;
+  font-family: var(--f) !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
 }
-
-/* Main container */
+ 
 .gradio-container {
-    max-width: 1100px !important;
-    margin: auto;
-    padding: 20px;
+  max-width: 1060px !important;
+  margin: 0 auto !important;
+  padding: 0 20px 48px !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
-
-/* Header / Title */
-h1, h2, h3 {
-    color: #E20074;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+ 
+/* ── HEADING (gr.Markdown title) ── */
+h1 {
+  font-family: var(--f) !important;
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--text) !important;
+  padding: 28px 0 4px !important;
+  border-bottom: 3px solid var(--M) !important;
+  margin-bottom: 24px !important;
+  position: relative;
 }
-
-/* Chat container */
-.chatbot, .gradio-chatbot {
-    background: rgba(28, 28, 37, 0.6);
-    border: 1px solid rgba(226, 0, 116, 0.2);
-    border-radius: 18px;
-    backdrop-filter: blur(14px);
-    padding: 10px;
+ 
+/* animated stripe under title */
+h1::after {
+  content: '';
+  position: absolute;
+  bottom: -3px; left: 0;
+  width: 80px; height: 3px;
+  background: #FF6BB5;
+  animation: titleSlide 2s ease-in-out infinite alternate;
 }
-
-/* USER MESSAGE */
-.message.user {
-    background: linear-gradient(135deg, #E20074, #b0005a);
-    color: white;
-    border-radius: 16px;
-    padding: 12px;
-    box-shadow: 0 6px 20px rgba(226, 0, 116, 0.3);
-    transition: 0.25s ease;
+@keyframes titleSlide {
+  0%   { width: 60px; opacity: 0.6; }
+  100% { width: 160px; opacity: 1; }
 }
-
-.message.user:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(226, 0, 116, 0.5);
+ 
+/* emoji in title stays natural */
+h1 .emoji { color: inherit !important; }
+ 
+/* ── ALL CARDS / PANELS ── */
+.gr-box, .gr-panel, .gr-group, .gr-form,
+[class*="panel"], [class*="block"] {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--sh-sm) !important;
+  transition: box-shadow 0.2s, border-color 0.2s !important;
 }
-
-/* BOT MESSAGE */
-.message.bot {
-    background: rgba(255, 255, 255, 0.06);
-    color: white;
-    border-radius: 16px;
-    padding: 12px;
-    border-left: 3px solid #E20074;
-    transition: 0.25s ease;
+.gr-box:hover, .gr-panel:hover {
+  box-shadow: 0 4px 20px rgba(226,0,116,0.10) !important;
+  border-color: rgba(226,0,116,0.22) !important;
 }
-
-.message.bot:hover {
-    transform: translateY(-2px);
+ 
+/* ── LABELS ── */
+label, .gr-label, .label-wrap span {
+  font-family: var(--f) !important;
+  font-size: 0.63rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--muted) !important;
 }
-
-/* INPUT BOX */
-textarea {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(226, 0, 116, 0.3) !important;
-    border-radius: 12px !important;
-    color: white !important;
-    padding: 12px !important;
+ 
+/* ── INPUTS (link box + question box) ── */
+textarea, input[type="text"] {
+  font-family: var(--f) !important;
+  background: var(--surf2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: 8px !important;
+  padding: 12px 15px !important;
+  font-size: 0.88rem !important;
+  line-height: 1.55 !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
 }
-
-/* BUTTONS */
-button {
-    background: #E20074 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    border: none !important;
-    font-weight: 600;
-    transition: all 0.3s ease;
+textarea:focus, input[type="text"]:focus {
+  border-color: var(--M) !important;
+  box-shadow: 0 0 0 3px rgba(226,0,116,0.12) !important;
+  outline: none !important;
+  background: var(--white) !important;
 }
-
-button:hover {
-    background: #ff2d9a !important;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(226, 0, 116, 0.4);
+textarea::placeholder, input[type="text"]::placeholder {
+  color: var(--muted) !important;
 }
-
-/* INPUT FOCUS EFFECT */
-textarea:focus {
-    outline: none !important;
-    border: 1px solid #E20074 !important;
-    box-shadow: 0 0 15px rgba(226, 0, 116, 0.4);
+ 
+/* Status textbox (readonly) gets green monospace style */
+textarea[readonly] {
+  font-family: var(--mono) !important;
+  font-size: 0.76rem !important;
+  color: var(--ok) !important;
+  background: var(--okbg) !important;
+  border-color: var(--okborder) !important;
 }
-
-/* Card style panels (future UI elements) */
-.card {
-    background: rgba(28, 28, 37, 0.7);
-    border: 1px solid rgba(226, 0, 116, 0.2);
-    border-radius: 16px;
-    padding: 15px;
-    transition: 0.3s;
+ 
+/* ── BUTTONS ── */
+button, .gr-button {
+  font-family: var(--f) !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
 }
-
-.card:hover {
-    transform: scale(1.02);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+ 
+/* Primary = magenta gradient */
+button.primary, .gr-button-primary, button[variant="primary"] {
+  background: linear-gradient(135deg, #E20074 0%, #B5005C 100%) !important;
+  color: #fff !important;
+  box-shadow: var(--sh-mg) !important;
 }
-
-/* Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
+button.primary:hover, .gr-button-primary:hover {
+  box-shadow: 0 6px 28px rgba(226,0,116,0.40) !important;
+  transform: translateY(-1px) !important;
 }
-
-::-webkit-scrollbar-thumb {
-    background: #E20074;
-    border-radius: 10px;
+button.primary:active, .gr-button-primary:active {
+  transform: translateY(0) !important;
 }
+ 
+/* ── CHATBOT CONTAINER ── */
+.gr-chatbot, [data-testid="chatbot"] {
+  background: #FAFAFA !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--sh-sm) !important;
+}
+ 
+/* User bubble — right, magenta */
+.message.user, [data-testid="user"] .message {
+  background: linear-gradient(135deg, #E20074, #B5005C) !important;
+  color: #fff !important;
+  border-radius: 12px 12px 3px 12px !important;
+  padding: 11px 15px !important;
+  font-size: 0.86rem !important;
+  line-height: 1.65 !important;
+  max-width: 72% !important;
+  margin-left: auto !important;
+  box-shadow: 0 3px 14px rgba(226,0,116,0.22) !important;
+  animation: slideR 0.22s ease !important;
+}
+ 
+/* Bot bubble — left, white with magenta stripe */
+.message.bot, [data-testid="bot"] .message {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-left: 3px solid var(--M) !important;
+  color: var(--text) !important;
+  border-radius: 2px 12px 12px 12px !important;
+  padding: 11px 15px !important;
+  font-size: 0.86rem !important;
+  line-height: 1.65 !important;
+  max-width: 80% !important;
+  box-shadow: var(--sh-sm) !important;
+  animation: slideL 0.22s ease !important;
+}
+ 
+@keyframes slideR {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideL {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+ 
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--surf2); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(226,0,116,0.28); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--M); }
+ 
+/* ── HIDE GRADIO FOOTER ── */
+footer { display: none !important; }
+.gap { gap: 14px !important; }
 """
 
 
